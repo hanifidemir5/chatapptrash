@@ -105,7 +105,7 @@ char *receiverReturner(char *message)
             }
         }
     }
-    trueMessage[i] = '\0';
+    receiver[i] = '\0';
     return receiver;
 }
 
@@ -199,13 +199,14 @@ char *parityCalculator(char *trueMessage,int messagelength)
         
     }
     
+    returnarray[i] = '\0';
+
     return returnarray;
 }
 
 
 int corruptionChecker(char *received_message) 
 {
-    
     char *state = "true";
     int checkerBitCount=0, commandCount, i, j, messagelength = 0; //Init the counter before you increment it
     int stack = 0;
@@ -274,7 +275,7 @@ int corruptionChecker(char *received_message)
             state = "false";
         }
     }
-    
+
     if(state == "false")
     {
         return 0;
@@ -283,5 +284,5 @@ int corruptionChecker(char *received_message)
     {
         return 1;
     }
-
+    
 }
