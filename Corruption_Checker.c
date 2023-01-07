@@ -238,14 +238,7 @@ int main()
     }
     
     checkerBitCount = checkerBitCount - messagelength;
-    
-    printf("this is messagelength : %d\n",messagelength);
-    printf("this is commandCount : %d\n",commandCount);
-    printf("this is checkerBitCount : %d\n",checkerBitCount);
 
-    
-    
-    
     
     //received_message[commandCount + checkerBitCount + i + 1] = starting index of message 
     
@@ -261,10 +254,7 @@ int main()
     selected_string[i] = '\0';
     
     //calculation of checkingbits
-    
-    printf("selected_string is : %s\n",selected_string);
-    
-    
+
     const char *calculated_bits ;
     
     calculated_bits = parityCalculator(selected_string,strlen(selected_string));
@@ -282,8 +272,6 @@ int main()
             state = "false";
         }
     }
-    
-    printf("State is : %s",state);
     
     if(state == "false")
     {
