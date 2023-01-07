@@ -86,6 +86,7 @@ char *messageReturner(char *message)
             trueMessage[i] = message[i];
         }
     }
+    trueMessage[i] = '\0';
     return trueMessage;
 }
 
@@ -104,6 +105,7 @@ char *receiverReturner(char *message)
             }
         }
     }
+    trueMessage[i] = '\0';
     return receiver;
 }
 
@@ -201,9 +203,9 @@ char *parityCalculator(char *trueMessage,int messagelength)
 }
 
 
-int main() 
+int corruptionChecker(char *received_message) 
 {
-    char *received_message = "MESG|207830018610100010000010110000|bu ne len mk";
+    
     char *state = "true";
     int checkerBitCount=0, commandCount, i, j, messagelength = 0; //Init the counter before you increment it
     int stack = 0;
