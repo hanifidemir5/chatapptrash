@@ -2,7 +2,19 @@
 #include <string.h>
 #include <stdlib.h>
 #include<stdint.h>
-#include<inttypes.h> // uint32_t, uint8_t
+#include<inttypes.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <unistd.h>
+
+char *parityCalculator(char *message,int messagelength);
+uint32_t CRC32(char *msg);
+int input(char str[]);
+int corruptionChecker(char *received_message);
+char *receiverReturner(char *message);
+char *messageReturner(char *message);
+
+
 
 uint32_t CRC32(char *msg) {
 	const uint32_t CRCTable[] = { //Table for standart CRC32
@@ -63,73 +75,102 @@ uint32_t CRC32(char *msg) {
 	return crc32;
 }
 
-
-
-const char *parityCalculator(char *message,int messagelength)
+char *messageReturner(char *message)
 {
-    printf("%s\n",message);
-    char* returnarray = (char*)malloc(messagelength + 8 + 10 * sizeof(char));
+    char *trueMessage = (char*)malloc(sizeof(char) * strlen(message));
+    int i = 0,j = 0;
+    for(i = 0;i < strlen(message);i++)
+    {
+        if(message[i] != '-' && message[i + 1] != '>')
+        {
+            trueMessage[i] = message[i];
+        }
+    }
+    return trueMessage;
+}
 
+char *receiverReturner(char *message)
+{
+    char *receiver = (char*)malloc(sizeof(char) * strlen(message));
+    int i = 0,j = 0;
+    for(i = 0;i < strlen(message);i++)
+    {
+        if(message[i] == '-' && message[i + 1] == '>')
+        {
+            for(i;i < strlen(message);i++)
+            {
+                receiver[j] = message[i + 2];
+                j++;
+            }
+        }
+    }
+    return receiver;
+}
+
+char *parityCalculator(char *trueMessage,int messagelength)
+{
+    char *message = messageReturner(trueMessage);
+    char* returnarray = (char*)malloc(messagelength + 8 + 10 * sizeof(char));
+    char receiver[100];
     int i,j;
-    int arr[messagelength][8];
+    int parityMatrix[messagelength][8];
     // Assignment of messages bits to two dimentional array
     for(j = 0; j < messagelength; j++ )
     {
         int x = 0;
         char c = message[j];
-        for (i = 7; i >= 0; i--)
+        for (i = 7; i >= 0; i--) 
         {
-            arr[j][x] = (c >> i) & 1;
+            parityMatrix[j][x] = (c >> i) & 1;
             x++;
         }
     }
-
+    
     // Checking of two dimentional Array
-
+    
     int verticalparityarr[8];
     int col,row;
     int horizontalarray[messagelength];
-
+    
     int parity = 0;
-
+    
     //Calculation of messages vertical parity
-
-    for (col = 0; col < 8; col++)
+    
+    for (col = 0; col < 8; col++) 
     {
       int parity = 1;
-      for (row = 0; row < messagelength; row++)
+      for (row = 0; row < messagelength; row++) 
       {
-        parity ^= arr[row][col];
+        parity ^= parityMatrix[row][col];
       }
       verticalparityarr[col] = parity;
-
+      
       // Cheking of horizontalarrays parity
     }
-
+    
     //Calculation of messages horizontal parity
-
-    for (i = 0; i < messagelength; i++)
+    
+    for (i = 0; i < messagelength; i++) 
     {
         parity = 1;
         char c = message[i];
-        while (c)
+        while (c) 
         {
           parity ^= c & 1;
           c >>= 1;
         }
         horizontalarray[i] = parity;
     }
+    
 
+    //memcpy(returnarray, verticalparityarr, sizeof verticalparityarr);
 
-
-   // memcpy(returnarray, verticalparityarr, sizeof verticalparityarr);
-
-
+    
     unsigned int crc = CRC32(message);
-
-
+	
+	
 	int test1;
-
+    
     for(i = 10;i > 0;i--)
     {
         test1 = crc % 10;
@@ -137,45 +178,120 @@ const char *parityCalculator(char *message,int messagelength)
         returnarray[i-1] = (char) test1;
         crc /= 10;
     }
-
+    
     j = 0;
-
+    
     for(i = 10;i < 18;i++)
     {
         returnarray[i] = (char)verticalparityarr[j] + 48;
         j++;
     }
-
+    
     j = 0;
-
+    
     for(i = 18;i < messagelength + 18;i++)
     {
-
+        
         returnarray[i] = (char)horizontalarray[j] + 48;
         j++;
-
+        
     }
-
+    
     return returnarray;
 }
 
-int main()
+
+int main() 
 {
-    char *message;
-    size_t size = 0;
-    size_t n; //Fixed typo here
-    n = getline(&message, &size, stdin);
-    message[strlen(message)-1] = NULL;
+    char *received_message = "MESG|207830018610100010000010110000|bu ne len mk";
+    char *state = "true";
+    int checkerBitCount=0, commandCount, i, j, messagelength = 0; //Init the counter before you increment it
+    int stack = 0;
+    
+    //Taking Length of the parities and message
 
-    int i;
-    char *calculated_checker ;
+    for(i = 0 ; i < strlen(received_message); i++)
+    {
+        checkerBitCount++;
+        if(received_message[i] == '|')
+        {
+            if(stack == 0)
+            {
+                commandCount=i+1;
+                stack++;
+                checkerBitCount = 0;
+                i++;
+            }
+            else if(stack == 1)
+            {
+                stack++;
+            }
+        }
+        else if(stack == 2)
+        {
+            if(received_message[i] == '-' && received_message[i + 1] == '>')
+            {
+                break;    
+            }
+            messagelength++;
+        }
+    }
+    
+    checkerBitCount = checkerBitCount - messagelength;
+    
+    printf("this is messagelength : %d\n",messagelength);
+    printf("this is commandCount : %d\n",commandCount);
+    printf("this is checkerBitCount : %d\n",checkerBitCount);
 
-    calculated_checker = parityCalculator(message,strlen(message));
+    
+    
+    
+    
+    //received_message[commandCount + checkerBitCount + i + 1] = starting index of message 
+    
+    char selected_string[messagelength];
 
-    printf("\n%s",calculated_checker);
+    
+    // Assignment of message to selected_string
+    for(i = 0; i < messagelength + 1; i++)
+    {
+        selected_string[i] = received_message[checkerBitCount + commandCount + i + 1];
+    }
+    
+    selected_string[i] = '\0';
+    
+    //calculation of checkingbits
+    
+    printf("selected_string is : %s\n",selected_string);
+    
+    
+    const char *calculated_bits ;
+    
+    calculated_bits = parityCalculator(selected_string,strlen(selected_string));
+    
+    // Cheking if calculated parities are matching with the parities that are received with the message
 
-    //strcat(seperator,message);
+    for(i = 0; i < checkerBitCount; i++)
+    {
+        if(received_message[i + commandCount] == calculated_bits [i])
+        {
+            continue;
+        }
+        else
+        {
+            state = "false";
+        }
+    }
+    
+    printf("State is : %s",state);
+    
+    if(state == "false")
+    {
+        return 0;
+    }
+    else if(state == "true")
+    {
+        return 1;
+    }
 
-    //strcat(seperator,str);
 }
-
